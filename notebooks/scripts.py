@@ -1,17 +1,12 @@
-import torch
-from peft import LoraConfig, TaskType
-from peft.peft_model import PeftModelForSequenceClassification
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification,
-    TrainingArguments,
-    Trainer,
-    EarlyStoppingCallback,
-)
-from datasets import load_dataset
 import datetime
 
 import evaluate
+import torch
+from datasets import load_dataset
+from peft import LoraConfig, TaskType
+from peft.peft_model import PeftModelForSequenceClassification
+from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
+                          EarlyStoppingCallback, Trainer, TrainingArguments)
 
 
 def train_peft(peft_config):
@@ -20,11 +15,14 @@ def train_peft(peft_config):
     model.config.pad_token_id = tokenizer.pad_token_id
 
     class PatchedPeftModelForSequenceClassification(PeftModelForSequenceClassification):
-        def add_adapter(self, adaper_name, peft_config, low_cpu_mem_usage: bool = False):
+        def add_adapter(self, adapter_name, peft_config, low_cpu_mem_usage: bool = False):
             super().add_adapter(adapter_name, peft_config)    
 
     peft_model = PatchedPeftModelForSequenceClassification(model, peft_config)
-            
+    peft_model.print_trainable_parameters()
+    for k,param in peft_model.named_parameters():
+        if param.requires_grad:
+            print(k, param.numel())
             
     ds = load_dataset(
         "csv",
